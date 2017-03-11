@@ -281,18 +281,24 @@
 (defn property-simplification [expr]
   (def keys-to-map '())
   (if (not (nil? (get-symbol-list expr)))
-    (def keys-to-map (get-symbol-list expr))
+    (def keys-to-map (distinct (get-symbol-list expr)))
   )
 
   (cond
     (= (count keys-to-map) 0) (cond
-                                  (empty? (rest expr)) expr
+                                (or (= (count expr) 1) (not (list? expr))) expr
 
-                                  (and (and (= (count expr) 3) (find-neighbor expr 'or 'true)) (deep-search expr (list 'or 'true (get-neighbor expr 'or 'true)))) (property-simplification (build-replace-expression expr (list 'or 'true (get-neighbor expr 'or 'true)) 'true));;;;;;;it needs to get the partnering element at the level where the first part of this predicate is true
-                                  (and (and (= (count expr) 3) (find-neighbor expr 'true 'or)) (deep-search expr (list 'or (get-neighbor expr 'true 'or) 'true))) (property-simplification (build-replace-expression expr (list 'or (get-neighbor expr 'true 'or) 'true) 'true))
+                                (and (and (= (count expr) 3) (find-neighbor expr 'or 'true)) (deep-search expr (list 'or 'true (get-neighbor expr 'or 'true)))) (property-simplification (build-replace-expression expr (list 'or 'true (get-neighbor expr 'or 'true)) 'true))
+                                (and (and (= (count expr) 3) (find-neighbor expr 'true 'or)) (deep-search expr (list 'or (get-neighbor expr 'true 'or) 'true))) (property-simplification (build-replace-expression expr (list 'or (get-neighbor expr 'true 'or) 'true) 'true))
 
-                                  (and (and (= (count expr) 3) (find-neighbor expr 'and 'false)) (deep-search expr (list 'and (get-neighbor expr 'and 'false) 'false))) (property-simplification (build-replace-expression expr (list 'and (get-neighbor expr 'and 'false) 'false) 'false))
-                                  (and (and (= (count expr) 3) (find-neighbor expr 'false 'and)) (deep-search expr (list 'and 'false (get-neighbor expr 'false 'and)))) (property-simplification (build-replace-expression expr (list 'and 'false (get-neighbor expr 'false 'and)) 'false))
+                                (and (and (= (count expr) 3) (find-neighbor expr 'or 'false)) (deep-search expr (list 'or 'false (get-neighbor expr 'or 'false)))) (property-simplification (build-replace-expression expr (list 'or 'false (get-neighbor expr 'or 'false)) (get-neighbor expr 'or 'false)))
+                                (and (and (= (count expr) 3) (find-neighbor expr 'false 'or)) (deep-search expr (list 'or (get-neighbor expr 'false 'or) 'false))) (property-simplification (build-replace-expression expr (list 'or (get-neighbor expr 'false 'or) 'false) (get-neighbor expr 'false 'or)))
+
+                                (and (and (= (count expr) 3) (find-neighbor expr 'and 'false)) (deep-search expr (list 'and (get-neighbor expr 'and 'false) 'false))) (property-simplification (build-replace-expression expr (list 'and (get-neighbor expr 'and 'false) 'false) 'false))
+                                (and (and (= (count expr) 3) (find-neighbor expr 'false 'and)) (deep-search expr (list 'and 'false (get-neighbor expr 'false 'and)))) (property-simplification (build-replace-expression expr (list 'and 'false (get-neighbor expr 'false 'and)) 'false))
+
+                                (and (and (= (count expr) 3) (find-neighbor expr 'and 'true)) (deep-search expr (list 'and (get-neighbor expr 'and 'true) 'true))) (property-simplification (build-replace-expression expr (list 'and (get-neighbor expr 'and 'true) 'true) (get-neighbor expr 'and 'true)))
+                                (and (and (= (count expr) 3) (find-neighbor expr 'true 'and)) (deep-search expr (list 'and 'true (get-neighbor expr 'true 'and)))) (property-simplification (build-replace-expression expr (list 'and 'true (get-neighbor expr 'true 'and)) (get-neighbor expr 'true 'and)))
 
                                   (deep-search expr '(or true)) (property-simplification (build-replace-expression expr '(or true) 'true))
                                   (deep-search expr '(or false)) (property-simplification (build-replace-expression expr '(or false) 'false))
@@ -314,18 +320,26 @@
                                   :else expr
                                 )
     (= (count keys-to-map) 1) (cond
-                                  (empty? (rest expr)) expr
+                                (or (= (count expr) 1) (not (list? expr))) expr
 
-                                  (and (and (= (count expr) 3) (find-neighbor expr 'or 'true)) (deep-search expr (list 'or 'true (get-neighbor expr 'or 'true)))) (property-simplification (build-replace-expression expr (list 'or 'true (get-neighbor expr 'or 'true)) 'true));;;;;;;it needs to get the partnering element at the level where the first part of this predicate is true
-                                  (and (and (= (count expr) 3) (find-neighbor expr 'true 'or)) (deep-search expr (list 'or (get-neighbor expr 'true 'or) 'true))) (property-simplification (build-replace-expression expr (list 'or (get-neighbor expr 'true 'or) 'true) 'true))
+                                (and (and (= (count expr) 3) (find-neighbor expr 'or 'true)) (deep-search expr (list 'or 'true (get-neighbor expr 'or 'true)))) (property-simplification (build-replace-expression expr (list 'or 'true (get-neighbor expr 'or 'true)) 'true))
+                                (and (and (= (count expr) 3) (find-neighbor expr 'true 'or)) (deep-search expr (list 'or (get-neighbor expr 'true 'or) 'true))) (property-simplification (build-replace-expression expr (list 'or (get-neighbor expr 'true 'or) 'true) 'true))
 
-                                  (and (and (= (count expr) 3) (find-neighbor expr 'and 'false)) (deep-search expr (list 'and (get-neighbor expr 'and 'false) 'false))) (property-simplification (build-replace-expression expr (list 'and (get-neighbor expr 'and 'false) 'false) 'false))
-                                  (and (and (= (count expr) 3) (find-neighbor expr 'false 'and)) (deep-search expr (list 'and 'false (get-neighbor expr 'false 'and)))) (property-simplification (build-replace-expression expr (list 'and 'false (get-neighbor expr 'false 'and)) 'false))
+                                (and (and (= (count expr) 3) (find-neighbor expr 'or 'false)) (deep-search expr (list 'or 'false (get-neighbor expr 'or 'false)))) (property-simplification (build-replace-expression expr (list 'or 'false (get-neighbor expr 'or 'false)) (get-neighbor expr 'or 'false)))
+                                (and (and (= (count expr) 3) (find-neighbor expr 'false 'or)) (deep-search expr (list 'or (get-neighbor expr 'false 'or) 'false))) (property-simplification (build-replace-expression expr (list 'or (get-neighbor expr 'false 'or) 'false) (get-neighbor expr 'false 'or)))
+
+                                (and (and (= (count expr) 3) (find-neighbor expr 'and 'false)) (deep-search expr (list 'and (get-neighbor expr 'and 'false) 'false))) (property-simplification (build-replace-expression expr (list 'and (get-neighbor expr 'and 'false) 'false) 'false))
+                                (and (and (= (count expr) 3) (find-neighbor expr 'false 'and)) (deep-search expr (list 'and 'false (get-neighbor expr 'false 'and)))) (property-simplification (build-replace-expression expr (list 'and 'false (get-neighbor expr 'false 'and)) 'false))
+
+                                (and (and (= (count expr) 3) (find-neighbor expr 'and 'true)) (deep-search expr (list 'and (get-neighbor expr 'and 'true) 'true))) (property-simplification (build-replace-expression expr (list 'and (get-neighbor expr 'and 'true) 'true) (get-neighbor expr 'and 'true)))
+                                (and (and (= (count expr) 3) (find-neighbor expr 'true 'and)) (deep-search expr (list 'and 'true (get-neighbor expr 'true 'and)))) (property-simplification (build-replace-expression expr (list 'and 'true (get-neighbor expr 'true 'and)) (get-neighbor expr 'true 'and)))
 
                                   (deep-search expr '(or true)) (property-simplification (build-replace-expression expr '(or true) 'true))
                                   (deep-search expr '(or false)) (property-simplification (build-replace-expression expr '(or false) 'false))
                                   (deep-search expr '(and true)) (property-simplification (build-replace-expression expr '(and true) 'true))
                                   (deep-search expr '(and false)) (property-simplification (build-replace-expression expr '(and false) 'false))
+
+                                  (deep-search expr (list 'or (nth keys-to-map 0) (nth keys-to-map 0))) (property-simplification (build-replace-expression expr (list 'or (nth keys-to-map 0) (nth keys-to-map 0)) (nth keys-to-map 0)))
 
                                   (deep-search expr '(or true true)) (property-simplification (build-replace-expression expr '(or true true) 'true))
                                   (deep-search expr '(or false false)) (property-simplification (build-replace-expression expr '(or false false) 'false))
@@ -352,18 +366,27 @@
                                   :else expr
                                 )
     (= (count keys-to-map) 2) (cond
-                                  (empty? (rest expr)) expr
+                                (or (= (count expr) 1) (not (list? expr))) expr
 
-                                  (and (and (= (count expr) 3) (find-neighbor expr 'or 'true)) (deep-search expr (list 'or 'true (get-neighbor expr 'or 'true)))) (property-simplification (build-replace-expression expr (list 'or 'true (get-neighbor expr 'or 'true)) 'true));;;;;;;it needs to get the partnering element at the level where the first part of this predicate is true
+                                  (and (and (= (count expr) 3) (find-neighbor expr 'or 'true)) (deep-search expr (list 'or 'true (get-neighbor expr 'or 'true)))) (property-simplification (build-replace-expression expr (list 'or 'true (get-neighbor expr 'or 'true)) 'true))
                                   (and (and (= (count expr) 3) (find-neighbor expr 'true 'or)) (deep-search expr (list 'or (get-neighbor expr 'true 'or) 'true))) (property-simplification (build-replace-expression expr (list 'or (get-neighbor expr 'true 'or) 'true) 'true))
+
+                                  (and (and (= (count expr) 3) (find-neighbor expr 'or 'false)) (deep-search expr (list 'or 'false (get-neighbor expr 'or 'false)))) (property-simplification (build-replace-expression expr (list 'or 'false (get-neighbor expr 'or 'false)) (get-neighbor expr 'or 'false)))
+                                  (and (and (= (count expr) 3) (find-neighbor expr 'false 'or)) (deep-search expr (list 'or (get-neighbor expr 'false 'or) 'false))) (property-simplification (build-replace-expression expr (list 'or (get-neighbor expr 'false 'or) 'false) (get-neighbor expr 'false 'or)))
 
                                   (and (and (= (count expr) 3) (find-neighbor expr 'and 'false)) (deep-search expr (list 'and (get-neighbor expr 'and 'false) 'false))) (property-simplification (build-replace-expression expr (list 'and (get-neighbor expr 'and 'false) 'false) 'false))
                                   (and (and (= (count expr) 3) (find-neighbor expr 'false 'and)) (deep-search expr (list 'and 'false (get-neighbor expr 'false 'and)))) (property-simplification (build-replace-expression expr (list 'and 'false (get-neighbor expr 'false 'and)) 'false))
+
+                                  (and (and (= (count expr) 3) (find-neighbor expr 'and 'true)) (deep-search expr (list 'and (get-neighbor expr 'and 'true) 'true))) (property-simplification (build-replace-expression expr (list 'and (get-neighbor expr 'and 'true) 'true) (get-neighbor expr 'and 'true)))
+                                  (and (and (= (count expr) 3) (find-neighbor expr 'true 'and)) (deep-search expr (list 'and 'true (get-neighbor expr 'true 'and)))) (property-simplification (build-replace-expression expr (list 'and 'true (get-neighbor expr 'true 'and)) (get-neighbor expr 'true 'and)))
 
                                   (deep-search expr '(or true)) (property-simplification (build-replace-expression expr '(or true) 'true))
                                   (deep-search expr '(or false)) (property-simplification (build-replace-expression expr '(or false) 'false))
                                   (deep-search expr '(and true)) (property-simplification (build-replace-expression expr '(and true) 'true))
                                   (deep-search expr '(and false)) (property-simplification (build-replace-expression expr '(and false) 'false))
+
+                                  (deep-search expr (list 'or (nth keys-to-map 0) (nth keys-to-map 0))) (property-simplification (build-replace-expression expr (list 'or (nth keys-to-map 0) (nth keys-to-map 0)) (nth keys-to-map 0)))
+                                  (deep-search expr (list 'or (nth keys-to-map 1) (nth keys-to-map 1))) (property-simplification (build-replace-expression expr (list 'or (nth keys-to-map 1) (nth keys-to-map 1)) (nth keys-to-map 1)))
 
                                   (deep-search expr '(or true true)) (property-simplification (build-replace-expression expr '(or true true) 'true))
                                   (deep-search expr '(or false false)) (property-simplification (build-replace-expression expr '(or false false) 'false))
@@ -408,18 +431,28 @@
                                   :else expr
                                 )
     (= (count keys-to-map) 3) (cond
-                                  (empty? (rest expr)) expr
+                                (or (= (count expr) 1) (not (list? expr))) expr
 
-                                  (and (and (= (count expr) 3) (find-neighbor expr 'or 'true)) (deep-search expr (list 'or 'true (get-neighbor expr 'or 'true)))) (property-simplification (build-replace-expression expr (list 'or 'true (get-neighbor expr 'or 'true)) 'true));;;;;;;it needs to get the partnering element at the level where the first part of this predicate is true
-                                  (and (and (= (count expr) 3) (find-neighbor expr 'true 'or)) (deep-search expr (list 'or (get-neighbor expr 'true 'or) 'true))) (property-simplification (build-replace-expression expr (list 'or (get-neighbor expr 'true 'or) 'true) 'true))
+                                (and (and (= (count expr) 3) (find-neighbor expr 'or 'true)) (deep-search expr (list 'or 'true (get-neighbor expr 'or 'true)))) (property-simplification (build-replace-expression expr (list 'or 'true (get-neighbor expr 'or 'true)) 'true))
+                                (and (and (= (count expr) 3) (find-neighbor expr 'true 'or)) (deep-search expr (list 'or (get-neighbor expr 'true 'or) 'true))) (property-simplification (build-replace-expression expr (list 'or (get-neighbor expr 'true 'or) 'true) 'true))
 
-                                  (and (and (= (count expr) 3) (find-neighbor expr 'and 'false)) (deep-search expr (list 'and (get-neighbor expr 'and 'false) 'false))) (property-simplification (build-replace-expression expr (list 'and (get-neighbor expr 'and 'false) 'false) 'false))
-                                  (and (and (= (count expr) 3) (find-neighbor expr 'false 'and)) (deep-search expr (list 'and 'false (get-neighbor expr 'false 'and)))) (property-simplification (build-replace-expression expr (list 'and 'false (get-neighbor expr 'false 'and)) 'false))
+                                (and (and (= (count expr) 3) (find-neighbor expr 'or 'false)) (deep-search expr (list 'or 'false (get-neighbor expr 'or 'false)))) (property-simplification (build-replace-expression expr (list 'or 'false (get-neighbor expr 'or 'false)) (get-neighbor expr 'or 'false)))
+                                (and (and (= (count expr) 3) (find-neighbor expr 'false 'or)) (deep-search expr (list 'or (get-neighbor expr 'false 'or) 'false))) (property-simplification (build-replace-expression expr (list 'or (get-neighbor expr 'false 'or) 'false) (get-neighbor expr 'false 'or)))
+
+                                (and (and (= (count expr) 3) (find-neighbor expr 'and 'false)) (deep-search expr (list 'and (get-neighbor expr 'and 'false) 'false))) (property-simplification (build-replace-expression expr (list 'and (get-neighbor expr 'and 'false) 'false) 'false))
+                                (and (and (= (count expr) 3) (find-neighbor expr 'false 'and)) (deep-search expr (list 'and 'false (get-neighbor expr 'false 'and)))) (property-simplification (build-replace-expression expr (list 'and 'false (get-neighbor expr 'false 'and)) 'false))
+
+                                (and (and (= (count expr) 3) (find-neighbor expr 'and 'true)) (deep-search expr (list 'and (get-neighbor expr 'and 'true) 'true))) (property-simplification (build-replace-expression expr (list 'and (get-neighbor expr 'and 'true) 'true) (get-neighbor expr 'and 'true)))
+                                (and (and (= (count expr) 3) (find-neighbor expr 'true 'and)) (deep-search expr (list 'and 'true (get-neighbor expr 'true 'and)))) (property-simplification (build-replace-expression expr (list 'and 'true (get-neighbor expr 'true 'and)) (get-neighbor expr 'true 'and)))
 
                                   (deep-search expr '(or true)) (property-simplification (build-replace-expression expr '(or true) 'true))
                                   (deep-search expr '(or false)) (property-simplification (build-replace-expression expr '(or false) 'false))
                                   (deep-search expr '(and true)) (property-simplification (build-replace-expression expr '(and true) 'true))
                                   (deep-search expr '(and false)) (property-simplification (build-replace-expression expr '(and false) 'false))
+
+                                  (deep-search expr (list 'or (nth keys-to-map 0) (nth keys-to-map 0))) (property-simplification (build-replace-expression expr (list 'or (nth keys-to-map 0) (nth keys-to-map 0)) (nth keys-to-map 0)))
+                                  (deep-search expr (list 'or (nth keys-to-map 1) (nth keys-to-map 1))) (property-simplification (build-replace-expression expr (list 'or (nth keys-to-map 1) (nth keys-to-map 1)) (nth keys-to-map 1)))
+                                  (deep-search expr (list 'or (nth keys-to-map 2) (nth keys-to-map 2))) (property-simplification (build-replace-expression expr (list 'or (nth keys-to-map 2) (nth keys-to-map 2)) (nth keys-to-map 2)))
 
                                   (deep-search expr '(or true true)) (property-simplification (build-replace-expression expr '(or true true) 'true))
                                   (deep-search expr '(or false false)) (property-simplification (build-replace-expression expr '(or false false) 'false))
@@ -567,9 +600,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;DEMO---WORKING
-(def p1 '(and x (or x (and y (not z)))))
-(def p2 '(and (and z false) (or x true)))
-(def p3 '(or true a))
+;(def p1 '(and x (or x (and y (not z)))))
+;(def p2 '(and (and z false) (or x true)))
+;(def p3 '(or true a))
 ;(println (evalexp p1 '{x false, z true}))
 ;(println (type (evalexp p1 '{x false, z true})))
 ;(println (evalexp p2 '{x false, z true}))
@@ -581,4 +614,8 @@
 ;(println (evalexp (andexp p1 p2 p3) '{x false, z true}))
 ;(println (evalexp (orexp p1 p2 p3) '{x false, z true}))
 ;(println (type (evalexp (andexp p1 p2 p3) '{x false, z true})))
+;(println (evalexp '(and true (or (or false x) (and y (or z z)))) '{x true, y false}))
+;(println (evalexp '(and true (or (or false z) (and y (or z z)))) '{x true, y false}))
+;(println (evalexp '(not (and true (or (or false z) (and y (or z z))))) '{x true, y false}))
+;(println (evalexp (andexp 'x (orexp 'x 'y (notexp 'x)) (andexp 'x (notexp 'x))) '{y false}))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
